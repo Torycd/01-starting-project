@@ -6,6 +6,7 @@ import Input from "./Input.jsx";
 import Button from "./Button.jsx";
 import UserProgressContext from "../../store/UserProgressContext.jsx";
 import useHttp from "../../hook/useHttp.js";
+import Error from "./Error.jsx";
 const requestConfig = {
   method: "POST",
   headers: {
@@ -21,6 +22,7 @@ export default function Checkout() {
     isLoading: isSending,
     error,
     sendRequest,
+    clearData
   } = useHttp("http://localhost:3000/orders", requestConfig);
   const cartTotal = cartCtx.items.reduce(
     (totalPrice, item) => totalPrice + item.quantity * item.price,
@@ -28,6 +30,11 @@ export default function Checkout() {
   );
   function handleclose() {
     userProgressCtx.hideCheckout();
+  }
+  function handleFinish() {
+    userProgressCtx.hideCheckout()
+    cartCtx.clearCart()
+    clearData();
   }
   function handleSubmit(event) {
     event.preventDefault();
@@ -52,8 +59,26 @@ export default function Checkout() {
       <Button>Submit Order</Button>
     </>
   );
-  if(isSending){
-    actions = <span>Sending Order Data ...</span>
+  if (isSending) {
+    actions = <span>Sending Order Data ...</span>;
+  }
+  if (data && !error) {
+    return (
+      <Modal
+        open={userProgressCtx.progress === "checkout"}
+        onClose={handleclose}
+      >
+        <h2>Success!</h2>
+        <p>Your order was submitted sucesfully.</p>
+        <p>
+          We will get back to you with more details via email within the next
+          few mintues.
+        </p>
+        <p className="modal-actions">
+          <Button onClick={handleFinish}>Okay</Button>
+        </p>
+      </Modal>
+    );
   }
 
   return (
@@ -68,6 +93,7 @@ export default function Checkout() {
           <Input label="Postal Code" type="text" id="postal-code" />
           <Input label="City" type="text" id="city" />
         </div>
+        {error && <Error title="Failed to submit order" message={error} />}
         <p className="modal-actions">{actions}</p>
       </form>
     </Modal>
