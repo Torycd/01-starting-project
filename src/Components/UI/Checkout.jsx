@@ -5,10 +5,23 @@ import { currencyFormatter } from "../../util/formatting.js";
 import Input from "./Input.jsx";
 import Button from "./Button.jsx";
 import UserProgressContext from "../../store/UserProgressContext.jsx";
+import useHttp from "../../hook/useHttp.js";
+const requestConfig = {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+};
 
 export default function Checkout() {
   const cartCtx = useContext(CartContext);
   const userProgressCtx = useContext(UserProgressContext);
+  const {
+    data,
+    isLoading: isSending,
+    error,
+    sendRequest,
+  } = useHttp("http://localhost:3000/orders", requestConfig);
   const cartTotal = cartCtx.items.reduce(
     (totalPrice, item) => totalPrice + item.quantity * item.price,
     0
@@ -22,20 +35,27 @@ export default function Checkout() {
     const fd = new FormData(event.target);
     const customerData = Object.fromEntries(fd.entries());
 
-    fetch('http://localhost:3000/orders' ,{
-      method :"POST",
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    sendRequest(
+      JSON.stringify({
         order: {
           item: cartCtx.items,
-          customer: customerData
-        }
+          customer: customerData,
+        },
       })
-    })
-    
+    );
   }
+  let actions = (
+    <>
+      <Button type="button" textOnly onClick={handleclose}>
+        Close
+      </Button>
+      <Button>Submit Order</Button>
+    </>
+  );
+  if(isSending){
+    actions = <span>Sending Order Data ...</span>
+  }
+
   return (
     <Modal open={userProgressCtx.progress === "checkout"} onClose={handleclose}>
       <form onSubmit={handleSubmit}>
@@ -48,12 +68,7 @@ export default function Checkout() {
           <Input label="Postal Code" type="text" id="postal-code" />
           <Input label="City" type="text" id="city" />
         </div>
-        <p className="modal-actions">
-          <Button type="button" textOnly onClick={handleclose}>
-            Close
-          </Button>
-          <Button>Submit Order</Button>
-        </p>
+        <p className="modal-actions">{actions}</p>
       </form>
     </Modal>
   );
